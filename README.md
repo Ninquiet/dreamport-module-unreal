@@ -1,4 +1,26 @@
-# DreamModule (base)
+# Dreamport module: Oodle and Unreal .pak
+
+A fork of [SomniumSpace/dreamport](https://github.com/SomniumSpace/dreamport) that
+offers the decoder `oodle` (Kraken, Mermaid, Selkie and Leviathan blocks) and the reader `unrealpak` (every
+entry of an Unreal 4 `.pak`, version 10 and later, and where its bytes lie). Both are Rust translations of
+Somnium's own C#: the decoder of its clean-room Oodle decoder, checked byte for byte against the official
+library's output; the reader of the client's pak reader (`Unpackers/Pak`), checked entry by entry against it.
+It is not RAD's or Epic's code.
+
+## This fork's decoder and reader
+
+`src/lib.rs` offers `oodle`, one Rust file per file of the C# decoder, and `unrealpak` under `src/pak/`, one
+Rust file per file of the C# reader it translates (the footer, the primary index, the directory index, the
+encoded entries, each entry's record, and locating an entry's bytes). The reader decodes nothing and never
+decrypts: an encrypted pak is refused (-2), an encrypted entry is a problem line. It lists every entry; which
+ones a world takes, the mount strip and the limits stay in the host.
+
+Measured 2026-11-04 and 2026-11-05 in Wasmtime 48 from .NET 10: the decoder is byte-identical to the
+official library on 8,405 valid streams and refuses the same corrupt streams as the C# decoder, at about
+560 MiB/s with the client's memory and time limits (0.77x the C# decoder). The reader lists both paks of a
+shipped Unreal 4 game (108,755 entries) exactly as the C# reader locates them, in about the same time.
+
+## From the base module
 
 A **module** is code a Somnium world can ask the client to use when it reads a game's files. It is
 a WebAssembly module that offers **decoders** (bytes in, bytes out), **readers** (it lists the entries of
@@ -121,12 +143,6 @@ cargo build --release --target wasm32-unknown-unknown
 
 The result is `target/wasm32-unknown-unknown/release/dream_module.wasm`. Use no crate that needs an
 import (no `wasm-bindgen`, no WASI).
-
-## The example decoder
-
-`src/lib.rs` offers the decoder `example`: it accepts an input exactly as long as the output and copies it.
-Replace `decode` with your own decoder. The example declares no reader; a reader adds `dp_list` and
-`dp_output` and reads its container through `host::Container`.
 
 ## License
 
